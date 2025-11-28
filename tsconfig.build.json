@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "es2015",
+    "module": "preserve",
+    "strict": true,
+    "esModuleInterop": true,
+    "sourceMap": false,
+    "declaration": true,
+    "declarationMap": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/example.ts", "node_modules"]
+}
