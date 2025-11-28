@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  age       Int
+  isActive  Boolean
+  bio       String?
+  createdAt DateTime @default(now())
+  role      Role     @default(USER)
+}
+
+enum Role {
+  USER
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  title     String
+  slug      String     @unique
+  content   String
+  published Boolean
+  views     Int
+  rating    Float
+  status    PostStatus
+  tags      String
+  createdAt DateTime   @default(now())
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}

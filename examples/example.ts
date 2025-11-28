@@ -1,4 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import "dotenv/config";
+
+import { PrismaClient } from './generated/prisma/client';
 import { faker } from '@faker-js/faker';
 
 import { SeedGenerator } from '../src/seed-generator'
@@ -7,13 +9,7 @@ import { SeedGenerator } from '../src/seed-generator'
  * Exemplo de uso com Prisma
  */
 export async function exampleUsage() {
-    const prisma = new PrismaClient({});
-
-    // Só executa em modo dev
-    if (process.env.NODE_ENV !== 'development') {
-        console.log('⚠️ Seeds só podem ser executados em modo desenvolvimento');
-        return;
-    }
+    const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL! });
 
     const seeder = new SeedGenerator({
         orm: 'prisma',
@@ -64,7 +60,7 @@ export async function exampleUsage() {
                     customFn: () => faker.helpers.arrayElements(
                         ['javascript', 'typescript', 'react', 'node', 'prisma'],
                         { min: 1, max: 3 }
-                    ),
+                    ).join(","),
                 },
                 createdAt: { type: 'pastDate' },
             },
