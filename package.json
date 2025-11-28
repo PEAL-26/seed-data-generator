@@ -6,7 +6,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build --clean && tsc -p tsconfig.build.json",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "publish": "npm publish",
+    "patch": "npm version patch"
   },
   "keywords": [
     "seed",
