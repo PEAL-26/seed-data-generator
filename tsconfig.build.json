@@ -10,5 +10,5 @@
     "declarationMap": false
   },
   "include": ["src/**/*"],
-  "exclude": ["src/example.ts", "node_modules"]
+  "exclude": ["src/example.ts", "node_modules", "examples"]
 }
