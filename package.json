@@ -8,8 +8,14 @@
     "build": "tsc --build --clean && tsc -p tsconfig.build.json",
     "prepare": "npm run build"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "seed",
+    "data",
+    "generator",
+    "orm",
+    "database"
+  ],
+  "author": "peal-26",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
