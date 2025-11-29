@@ -4,6 +4,16 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peal-26/seed-data-generator.git"
+  },
+  "author": "PEAL-26",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/peal-26/seed-data-generator/issues"
+  },
+  "homepage": "https://github.com/peal-26/seed-data-generator#readme",
   "scripts": {
     "build": "tsc --build --clean && tsc -p tsconfig.build.json",
     "prepare": "npm run build",
@@ -17,8 +27,6 @@
     "orm",
     "database"
   ],
-  "author": "peal-26",
-  "license": "ISC",
   "type": "module",
   "devDependencies": {
     "@types/node": "^24.10.1",
