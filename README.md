@@ -1,34 +1,38 @@
 # 🌱 Seed Data Generator
 
+<div align="center">
+
+![npm version](https://img.shields.io/npm/v/seed-data-generator)
+![npm downloads](https://img.shields.io/npm/dm/seed-data-generator)
+![license](https://img.shields.io/npm/l/seed-data-generator)
+![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+
 Uma biblioteca TypeScript poderosa e flexível para gerar dados fake e popular sua base de dados em ambiente de desenvolvimento.
 
-## 📋 Índice
+[Documentação](#-documentação) • [Instalação](#-instalação-rápida) • [Guia Rápido](#-guia-rápido) • [Exemplos](#-exemplos-práticos) • [API](#-api-reference)
 
-- [Características](#-características)
-- [Instalação](#-instalação)
-- [Configuração Inicial](#-configuração-inicial)
-- [Uso Básico](#-uso-básico)
-- [Tipos de Dados](#-tipos-de-dados)
-- [Configurações Avançadas](#-configurações-avançadas)
-- [ORMs Suportados](#-orms-suportados)
-- [Exemplos Práticos](#-exemplos-práticos)
-- [API Reference](#-api-reference)
-- [Boas Práticas](#-boas-práticas)
-- [Troubleshooting](#-troubleshooting)
+</div>
 
-## ✨ Características
+---
 
-- 🎲 **25+ tipos de dados** prontos para uso
+## ✨ Por que usar?
+
+- 🎲 **25+ tipos de dados** prontos para uso (email, phone, address, uuid, etc)
 - 🔐 **Valores únicos** garantidos automaticamente
-- 🎯 **Múltiplos ORMs** suportados (Prisma, TypeORM, Sequelize, Mongoose)
+- 🎯 **Múltiplos ORMs** suportados nativamente (Prisma, TypeORM, Sequelize, Mongoose)
 - 🎨 **Campos customizados** com funções próprias
-- 🔗 **Relacionamentos** entre tabelas
-- 🎛️ **Configurações flexíveis** por campo
+- 🔗 **Relacionamentos** simples entre tabelas
+- 🎛️ **Configurações flexíveis** por campo (min, max, optional, unique)
 - 🪝 **Hooks** antes e depois da criação
 - 📊 **Dados estáticos** compartilhados
-- 🛡️ **Segurança** - só executa em modo desenvolvimento
+- 🛡️ **Segurança** integrada - só executa em modo desenvolvimento
+- ⚡ **Performance** otimizada para inserção em lote
+- 📝 **TypeScript** first com tipos completos
 
-## 📦 Instalação
+## 🚀 Instalação Rápida
+
+### 1. Instale a biblioteca
 
 ```bash
 # npm
@@ -41,28 +45,42 @@ yarn add -D seed-data-generator
 pnpm add -D seed-data-generator
 ```
 
-## 🚀 Configuração Inicial
+> **Nota:** Instala como dependência de desenvolvimento (`-D`) pois seeds fakes só são usados em ambiente de desenvolvimento.
 
-## 💡 Uso Básico
+## 🎯 Guia Rápido
 
-### Exemplo Simples
+### Uso Básico (Prisma)
 
 ```typescript
-const seeder = new SeedGenerator({
-  orm: "prisma",
-  client: prisma,
-  verbose: true,
-});
+import { SeedGenerator } from "seed-data-generator";
+import { PrismaClient } from "@prisma/client";
 
-await seeder.seed({
-  model: "user",
-  count: 50,
-  fields: {
-    email: { type: "email" },
-    name: { type: "fullName" },
-    age: { type: "int", min: 18, max: 65 },
-  },
-});
+const prisma = new PrismaClient();
+
+async function main() {
+  const seeder = new SeedGenerator({
+    orm: "prisma",
+    client: prisma,
+    verbose: true,
+  });
+
+  await seeder.seed({
+    model: "user",
+    count: 50,
+    fields: {
+      email: { type: "email", unique: true },
+      name: { type: "fullName" },
+      age: { type: "int", min: 18, max: 65 },
+      isActive: { type: "boolean" },
+    },
+  });
+
+  console.log("✅ 50 usuários criados!");
+}
+
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
 ```
 
 ### Múltiplos Modelos
@@ -83,223 +101,596 @@ await seeder.seed([
     fields: {
       title: { type: "sentence" },
       content: { type: "paragraph" },
+      published: { type: "boolean" },
     },
   },
 ]);
 ```
 
-## 🎲 Tipos de Dados
+## 📦 Configuração Recomendada
+
+### Estrutura de Arquivos
+
+```
+seu-projeto/
+├── src/
+│   └── database/
+│       └── seeds/
+│           ├── index.ts          # Arquivo principal
+│           ├── user.seed.ts      # Seeds de usuários
+│           ├── post.seed.ts      # Seeds de posts
+│           └── product.seed.ts   # Seeds de produtos
+├── package.json
+└── .env
+```
+
+### Arquivo Principal de Seeds
+
+Crie `src/database/seeds/index.ts`:
+
+```typescript
+import { SeedGenerator } from "seed-data-generator";
+import { PrismaClient } from "@prisma/client";
+import { userSeeds } from "./user.seed";
+import { postSeeds } from "./post.seed";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  // Proteção: só executa em desenvolvimento
+  if (process.env.NODE_ENV !== "development") {
+    console.log("⚠️ Seeds só podem ser executados em modo desenvolvimento");
+    process.exit(1);
+  }
+
+  console.log("🌱 Iniciando seeds...\n");
+
+  const seeder = new SeedGenerator({
+    orm: "prisma",
+    client: prisma,
+    verbose: true,
+  });
+
+  // Limpa dados existentes
+  await prisma.post.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Executa seeds
+  await seeder.seed([userSeeds, postSeeds]);
+
+  console.log("\n✅ Seeds executados com sucesso!");
+}
+
+main()
+  .catch((error) => {
+    console.error("❌ Erro ao executar seeds:", error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+### Arquivo de Seeds Específico
+
+Crie `src/database/seeds/user.seed.ts`:
+
+```typescript
+import type { SeedConfig } from "seed-data-generator";
+
+export const userSeeds: SeedConfig = {
+  model: "user",
+  count: 50,
+  fields: {
+    email: { type: "email", unique: true },
+    name: { type: "fullName" },
+    age: { type: "int", min: 18, max: 65 },
+    phone: { type: "phone", optional: true },
+    bio: { type: "paragraph", optional: true, nullProbability: 0.3 },
+    avatar: { type: "avatar" },
+    createdAt: { type: "pastDate" },
+  },
+  staticData: {
+    role: "USER",
+    isVerified: false,
+  },
+  beforeCreate: async (data) => {
+    // Hash de senha ou outras transformações
+    data.password = "hashed_password_here";
+    return data;
+  },
+};
+```
+
+### Scripts no package.json
+
+```json
+{
+  "scripts": {
+    "seed": "tsx src/database/seeds/index.ts",
+    "seed:fresh": "npm run db:reset && npm run seed",
+    "db:reset": "npx prisma migrate reset --force --skip-seed"
+  },
+  "prisma": {
+    "seed": "tsx src/database/seeds/index.ts"
+  }
+}
+```
+
+### Variáveis de Ambiente
+
+```bash
+# .env.development
+NODE_ENV=development
+DATABASE_URL="postgresql://user:password@localhost:5432/mydb_dev"
+```
+
+## 📚 Documentação
+
+### 📋 Índice
+
+- [Tipos de Dados Disponíveis](#-tipos-de-dados-disponíveis)
+- [Configurações por Campo](#-configurações-por-campo)
+- [Recursos Avançados](#-recursos-avançados)
+- [Exemplos Práticos](#-exemplos-práticos)
+- [ORMs Suportados](#-orms-suportados)
+- [API Reference](#-api-reference)
+- [Boas Práticas](#-boas-práticas)
+- [Troubleshooting](#-troubleshooting)
+
+## 🎲 Tipos de Dados Disponíveis
 
 ### Identificadores
 
-| Tipo     | Descrição         | Exemplo                                  |
+| Tipo     | Descrição         | Exemplo Output                           |
 | -------- | ----------------- | ---------------------------------------- |
-| `uuid`   | UUID v4           | `"550e8400-e29b-41d4-a716-446655440000"` |
+| `uuid`   | UUID v4 único     | `"550e8400-e29b-41d4-a716-446655440000"` |
 | `string` | String aleatória  | `"dolor"`                                |
 | `slug`   | URL-friendly slug | `"lorem-ipsum-dolor"`                    |
 
+**Exemplo de uso:**
+
+```typescript
+{
+  id: { type: 'uuid' },
+  username: { type: 'string', unique: true },
+  postSlug: { type: 'slug', unique: true }
+}
+```
+
 ### Dados Pessoais
 
-| Tipo        | Descrição          | Exemplo                               |
-| ----------- | ------------------ | ------------------------------------- |
-| `email`     | Email válido       | `"john.doe@example.com"`              |
-| `password`  | Senha aleatória    | `"Xy3$mK9pL"`                         |
-| `firstName` | Primeiro nome      | `"John"`                              |
-| `lastName`  | Sobrenome          | `"Doe"`                               |
-| `fullName`  | Nome completo      | `"John Doe"`                          |
-| `phone`     | Número de telefone | `"+1-555-123-4567"`                   |
-| `avatar`    | URL de avatar      | `"https://avatars.example.com/u/123"` |
-| `jobTitle`  | Cargo profissional | `"Software Engineer"`                 |
+| Tipo        | Descrição          | Exemplo Output                                  |
+| ----------- | ------------------ | ----------------------------------------------- |
+| `email`     | Email válido       | `"john.doe@example.com"`                        |
+| `password`  | Senha aleatória    | `"Xy3$mK9pL"`                                   |
+| `firstName` | Primeiro nome      | `"John"`                                        |
+| `lastName`  | Sobrenome          | `"Doe"`                                         |
+| `fullName`  | Nome completo      | `"John Doe"`                                    |
+| `phone`     | Número de telefone | `"+1-555-123-4567"`                             |
+| `avatar`    | URL de avatar      | `"https://avatars.githubusercontent.com/u/123"` |
+| `jobTitle`  | Cargo profissional | `"Software Engineer"`                           |
+
+**Exemplo de uso:**
+
+```typescript
+{
+  email: { type: 'email', unique: true },
+  name: { type: 'fullName' },
+  phone: { type: 'phone', optional: true }
+}
+```
 
 ### Números
 
-| Tipo     | Descrição                 | Configurações             |
+| Tipo     | Descrição                 | Configurações Disponíveis |
 | -------- | ------------------------- | ------------------------- |
 | `int`    | Número inteiro            | `min`, `max`              |
 | `float`  | Número decimal            | `min`, `max`, `precision` |
 | `number` | Número (alias para float) | `min`, `max`, `precision` |
 
+**Exemplo de uso:**
+
 ```typescript
-// Exemplo
 {
   age: { type: 'int', min: 18, max: 65 },
   price: { type: 'float', min: 0, max: 1000, precision: 0.01 },
+  rating: { type: 'float', min: 0, max: 5, precision: 0.1 }
 }
 ```
 
-### Datas
+### Datas e Horários
 
-| Tipo         | Descrição           | Exemplo  |
-| ------------ | ------------------- | -------- |
-| `date`       | Data recente        | `Date()` |
-| `datetime`   | Data e hora recente | `Date()` |
-| `pastDate`   | Data no passado     | `Date()` |
-| `futureDate` | Data no futuro      | `Date()` |
+| Tipo         | Descrição           | Exemplo Output           |
+| ------------ | ------------------- | ------------------------ |
+| `date`       | Data recente        | `new Date()`             |
+| `datetime`   | Data e hora recente | `new Date()`             |
+| `pastDate`   | Data no passado     | `new Date('2023-01-15')` |
+| `futureDate` | Data no futuro      | `new Date('2026-12-31')` |
+
+**Exemplo de uso:**
+
+```typescript
+{
+  birthDate: { type: 'pastDate' },
+  createdAt: { type: 'pastDate' },
+  eventDate: { type: 'futureDate' }
+}
+```
 
 ### Textos
 
-| Tipo        | Descrição            | Exemplo                           |
-| ----------- | -------------------- | --------------------------------- |
-| `text`      | Múltiplos parágrafos | `"Lorem ipsum..."`                |
-| `paragraph` | Parágrafo completo   | `"Lorem ipsum dolor sit amet..."` |
-| `sentence`  | Sentença             | `"Lorem ipsum dolor."`            |
+| Tipo        | Descrição            | Tamanho Aproximado  |
+| ----------- | -------------------- | ------------------- |
+| `text`      | Múltiplos parágrafos | 500-1000 caracteres |
+| `paragraph` | Parágrafo completo   | 200-300 caracteres  |
+| `sentence`  | Sentença única       | 50-100 caracteres   |
 
-### Endereços
+**Exemplo de uso:**
 
-| Tipo      | Descrição         | Exemplo             |
+```typescript
+{
+  title: { type: 'sentence' },
+  excerpt: { type: 'sentence' },
+  description: { type: 'paragraph' },
+  content: { type: 'text' }
+}
+```
+
+### Endereços e Localização
+
+| Tipo      | Descrição         | Exemplo Output      |
 | --------- | ----------------- | ------------------- |
 | `address` | Endereço completo | `"123 Main Street"` |
-| `city`    | Cidade            | `"New York"`        |
-| `country` | País              | `"United States"`   |
+| `city`    | Nome de cidade    | `"New York"`        |
+| `country` | Nome de país      | `"United States"`   |
 | `zipCode` | CEP/Código Postal | `"12345-678"`       |
 
-### Outros
+**Exemplo de uso:**
 
-| Tipo      | Descrição       | Exemplo                       |
-| --------- | --------------- | ----------------------------- |
-| `url`     | URL             | `"https://example.com"`       |
-| `boolean` | Booleano        | `true` ou `false`             |
-| `company` | Nome de empresa | `"Acme Corp"`                 |
-| `image`   | URL de imagem   | `"https://picsum.photos/200"` |
-| `json`    | Objeto JSON     | `"{\"key\":\"value\"}"`       |
+```typescript
+{
+  street: { type: 'address' },
+  city: { type: 'city' },
+  country: { type: 'country' },
+  zipCode: { type: 'zipCode' }
+}
+```
+
+### Outros Tipos
+
+| Tipo      | Descrição               | Exemplo Output                    |
+| --------- | ----------------------- | --------------------------------- |
+| `url`     | URL completa            | `"https://example.com/path"`      |
+| `boolean` | Valor booleano          | `true` ou `false`                 |
+| `company` | Nome de empresa         | `"Acme Corporation"`              |
+| `image`   | URL de imagem           | `"https://picsum.photos/640/480"` |
+| `json`    | Objeto JSON serializado | `"{\"key\":\"value\"}"`           |
+
+**Exemplo de uso:**
+
+```typescript
+{
+  website: { type: 'url' },
+  isActive: { type: 'boolean' },
+  company: { type: 'company' },
+  coverImage: { type: 'image' }
+}
+```
 
 ### Tipos Especiais
 
-#### Enum
+#### Enum - Valores Fixos
+
+Use quando o campo aceita apenas valores específicos:
 
 ```typescript
 {
   status: {
     type: 'enum',
-    enumValues: ['ACTIVE', 'INACTIVE', 'PENDING']
+    enumValues: ['ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED']
+  },
+  role: {
+    type: 'enum',
+    enumValues: ['USER', 'ADMIN', 'MODERATOR']
+  },
+  priority: {
+    type: 'enum',
+    enumValues: [1, 2, 3, 4, 5]
   }
 }
 ```
 
-#### Custom
+#### Custom - Lógica Personalizada
+
+Use quando precisa de lógica customizada:
 
 ```typescript
 {
-  customField: {
+  // Gera código sequencial
+  orderNumber: {
     type: 'custom',
-    customFn: (index) => `custom-${index}`
+    customFn: (index) => `ORD-${Date.now()}-${index.toString().padStart(5, '0')}`
+  },
+
+  // Gera array de tags aleatórias
+  tags: {
+    type: 'custom',
+    customFn: () => {
+      const allTags = ['js', 'ts', 'react', 'node', 'prisma'];
+      return faker.helpers.arrayElements(allTags, { min: 1, max: 3 });
+    }
+  },
+
+  // Calcula valor baseado em outro campo
+  discountedPrice: {
+    type: 'custom',
+    customFn: (index) => {
+      // Acesso via closure ou beforeCreate hook
+      return originalPrice * 0.9;
+    }
   }
 }
 ```
 
-## 🎛️ Configurações Avançadas
+## ⚙️ Configurações por Campo
 
-### Valores Únicos
+### Valores Únicos (`unique`)
 
 Garante que não haverá valores duplicados:
 
 ```typescript
 {
-  email: {
-    type: 'email',
-    unique: true
-  }
+  email: { type: 'email', unique: true },
+  username: { type: 'string', unique: true },
+  slug: { type: 'slug', unique: true }
 }
 ```
 
-### Campos Opcionais
+**Como funciona:**
+
+- Internamente mantém um Set de valores já usados
+- Tenta gerar novo valor até encontrar um único
+- Limite de 1000 tentativas por campo
+- Ideal para: emails, usernames, slugs, códigos
+
+### Campos Opcionais (`optional`)
 
 Permite valores `null` com probabilidade configurável:
 
 ```typescript
 {
+  // 30% de chance de ser null
   bio: {
     type: 'paragraph',
     optional: true,
-    nullProbability: 0.3  // 30% de chance de ser null
+    nullProbability: 0.3
+  },
+
+  // 50% de chance de ser null (padrão quando não especificado)
+  middleName: {
+    type: 'string',
+    optional: true
+  },
+
+  // 10% de chance de ser null
+  phone: {
+    type: 'phone',
+    optional: true,
+    nullProbability: 0.1
   }
 }
 ```
 
-### Dados Estáticos
+**nullProbability:**
 
-Valores fixos aplicados a todos os registros:
+- Valor entre 0 (nunca null) e 1 (sempre null)
+- Padrão: 0.1 (10% de chance)
+- Só funciona quando `optional: true`
+
+### Ranges Numéricos
+
+Configure valores mínimos e máximos:
+
+```typescript
+{
+  // Idade entre 18 e 65
+  age: {
+    type: 'int',
+    min: 18,
+    max: 65
+  },
+
+  // Preço entre 10.00 e 999.99
+  price: {
+    type: 'float',
+    min: 10,
+    max: 1000,
+    precision: 0.01
+  },
+
+  // Estoque entre 0 e 10000
+  stock: {
+    type: 'int',
+    min: 0,
+    max: 10000
+  },
+
+  // Rating 0 a 5 com uma casa decimal
+  rating: {
+    type: 'float',
+    min: 0,
+    max: 5,
+    precision: 0.1
+  }
+}
+```
+
+**Precision:**
+
+- Define casas decimais para `float`/`number`
+- `precision: 0.01` = 2 casas decimais
+- `precision: 0.1` = 1 casa decimal
+- `precision: 0.001` = 3 casas decimais
+
+## 🚀 Recursos Avançados
+
+### Dados Estáticos Compartilhados
+
+Aplique valores fixos a todos os registros:
+
+```typescript
+{
+  model: 'user',
+  count: 100,
+  fields: {
+    email: { type: 'email', unique: true },
+    name: { type: 'fullName' }
+  },
+  staticData: {
+    role: 'USER',
+    isVerified: false,
+    accountType: 'FREE',
+    locale: 'pt-BR'
+  }
+}
+```
+
+**Quando usar:**
+
+- Valores padrão para todos os registros
+- Configurações iniciais
+- Flags de estado comum
+
+### Hooks de Transformação
+
+#### beforeCreate - Modifica antes de inserir
 
 ```typescript
 {
   model: 'user',
   count: 50,
   fields: {
-    name: { type: 'fullName' }
-  },
-  staticData: {
-    role: 'USER',
-    isVerified: false
-  }
-}
-```
-
-### Hooks
-
-#### beforeCreate
-
-Modifica dados antes de inserir:
-
-```typescript
-{
-  model: 'user',
-  count: 10,
-  fields: {
+    email: { type: 'email' },
     password: { type: 'password' }
   },
   beforeCreate: async (data, index) => {
-    // Hash da senha
+    // Hash de senha
     data.password = await bcrypt.hash(data.password, 10);
+
+    // Adiciona timestamp
+    data.registeredAt = new Date();
+
+    // Username baseado no email
+    data.username = data.email.split('@')[0];
+
+    // Logs
+    console.log(`Criando usuário ${index + 1}: ${data.email}`);
+
     return data;
   }
 }
 ```
 
-#### afterCreate
-
-Executa ações após inserir:
+#### afterCreate - Executa após inserir
 
 ```typescript
 {
   model: 'user',
-  count: 10,
+  count: 50,
   fields: {
     email: { type: 'email' }
   },
   afterCreate: async (data, index) => {
-    console.log(`Usuário ${data.email} criado!`);
     // Enviar email de boas-vindas
+    await sendWelcomeEmail(data.email);
+
+    // Criar registro relacionado
+    await prisma.profile.create({
+      data: { userId: data.id }
+    });
+
+    // Analytics
+    console.log(`✓ Usuário ${index + 1} criado e notificado`);
   }
 }
 ```
 
-### Relacionamentos
+**Diferenças:**
+
+- `beforeCreate`: modifica dados antes de salvar (retorna data modificado)
+- `afterCreate`: executa ações após salvar (não retorna nada)
+
+### Relacionamentos Entre Tabelas
+
+#### Método 1: IDs Estáticos
 
 ```typescript
-// Primeiro cria os usuários
-await seeder.seed({
-  model: "user",
-  count: 10,
-  fields: {
-    id: { type: "uuid" },
-    email: { type: "email" },
-  },
+// Cria usuário específico primeiro
+const admin = await prisma.user.create({
+  data: { email: "admin@example.com", name: "Admin" },
 });
 
-// Busca IDs dos usuários criados
-const users = await prisma.user.findMany({ select: { id: true } });
-const userIds = users.map((u) => u.id);
-
-// Cria posts relacionados
+// Usa o ID nos posts
 await seeder.seed({
   model: "post",
-  count: 50,
+  count: 100,
   fields: {
     title: { type: "sentence" },
     content: { type: "paragraph" },
-    userId: {
+  },
+  staticData: {
+    authorId: admin.id, // Todos os posts do admin
+  },
+});
+```
+
+#### Método 2: IDs Aleatórios
+
+```typescript
+// 1. Cria usuários
+await seeder.seed({
+  model: "user",
+  count: 20,
+  fields: {
+    email: { type: "email", unique: true },
+    name: { type: "fullName" },
+  },
+});
+
+// 2. Busca IDs criados
+const users = await prisma.user.findMany({
+  select: { id: true },
+});
+const userIds = users.map((u) => u.id);
+
+// 3. Cria posts com authorId aleatório
+await seeder.seed({
+  model: "post",
+  count: 200,
+  fields: {
+    title: { type: "sentence" },
+    content: { type: "paragraph" },
+    authorId: {
       type: "custom",
       customFn: () => faker.helpers.arrayElement(userIds),
+    },
+  },
+});
+```
+
+#### Método 3: Distribuição Controlada
+
+```typescript
+// Distribui posts igualmente entre usuários
+await seeder.seed({
+  model: "post",
+  count: 200,
+  fields: {
+    title: { type: "sentence" },
+    authorId: {
+      type: "custom",
+      customFn: (index) => userIds[index % userIds.length],
     },
   },
 });
@@ -311,6 +702,7 @@ await seeder.seed({
 
 ```typescript
 import { PrismaClient } from "@prisma/client";
+import { SeedGenerator } from "seed-data-generator";
 
 const prisma = new PrismaClient();
 
@@ -324,20 +716,40 @@ await seeder.seed({
   model: "user", // Nome do model no schema.prisma
   count: 50,
   fields: {
-    /* ... */
+    email: { type: "email" },
+    name: { type: "fullName" },
   },
 });
+
+await prisma.$disconnect();
+```
+
+**Schema Prisma exemplo:**
+
+```prisma
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+}
 ```
 
 ### TypeORM
 
 ```typescript
 import { DataSource } from "typeorm";
+import { SeedGenerator } from "seed-data-generator";
 import { User } from "./entities/User";
 
 const dataSource = new DataSource({
-  /* config */
+  type: "postgres",
+  host: "localhost",
+  port: 5432,
+  database: "mydb",
+  entities: [User],
 });
+
 await dataSource.initialize();
 
 const userRepository = dataSource.getRepository(User);
@@ -352,15 +764,25 @@ await seeder.seed({
   model: "user",
   count: 50,
   fields: {
-    /* ... */
+    email: { type: "email" },
+    name: { type: "fullName" },
   },
 });
+
+await dataSource.destroy();
 ```
 
 ### Sequelize
 
 ```typescript
+import { Sequelize } from "sequelize";
+import { SeedGenerator } from "seed-data-generator";
 import { User } from "./models/User";
+
+const sequelize = new Sequelize("database", "username", "password", {
+  host: "localhost",
+  dialect: "postgres",
+});
 
 const seeder = new SeedGenerator({
   orm: "sequelize",
@@ -372,15 +794,22 @@ await seeder.seed({
   model: "user",
   count: 50,
   fields: {
-    /* ... */
+    email: { type: "email" },
+    name: { type: "fullName" },
   },
 });
+
+await sequelize.close();
 ```
 
 ### Mongoose
 
 ```typescript
+import mongoose from "mongoose";
+import { SeedGenerator } from "seed-data-generator";
 import { User } from "./models/User";
+
+await mongoose.connect("mongodb://localhost:27017/mydb");
 
 const seeder = new SeedGenerator({
   orm: "mongoose",
@@ -392,194 +821,17 @@ await seeder.seed({
   model: "user",
   count: 50,
   fields: {
-    /* ... */
-  },
-});
-```
-
-## 📚 Exemplos Práticos
-
-### E-commerce Completo
-
-```typescript
-import { faker } from "@faker-js/faker";
-
-await seeder.seed([
-  // Usuários
-  {
-    model: "user",
-    count: 100,
-    fields: {
-      email: { type: "email", unique: true },
-      name: { type: "fullName" },
-      password: { type: "password" },
-      phone: { type: "phone", optional: true },
-      avatar: { type: "avatar", optional: true },
-      createdAt: { type: "pastDate" },
-    },
-    beforeCreate: async (data) => {
-      data.password = await hashPassword(data.password);
-      return data;
-    },
-  },
-
-  // Categorias
-  {
-    model: "category",
-    count: 10,
-    fields: {
-      name: { type: "string" },
-      slug: { type: "slug", unique: true },
-      description: { type: "paragraph" },
-    },
-  },
-
-  // Produtos
-  {
-    model: "product",
-    count: 500,
-    fields: {
-      name: { type: "sentence" },
-      slug: { type: "slug", unique: true },
-      description: { type: "paragraph" },
-      price: { type: "float", min: 10, max: 5000, precision: 0.01 },
-      stock: { type: "int", min: 0, max: 1000 },
-      image: { type: "image" },
-      rating: { type: "float", min: 0, max: 5, precision: 0.1 },
-      isActive: { type: "boolean" },
-      tags: {
-        type: "custom",
-        customFn: () =>
-          faker.helpers.arrayElements(
-            ["eletrônicos", "casa", "moda", "esportes"],
-            { min: 1, max: 3 }
-          ),
-      },
-    },
-  },
-
-  // Pedidos
-  {
-    model: "order",
-    count: 300,
-    fields: {
-      orderNumber: {
-        type: "custom",
-        customFn: (i) => `ORD-${Date.now()}-${i}`,
-      },
-      status: {
-        type: "enum",
-        enumValues: ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"],
-      },
-      total: { type: "float", min: 50, max: 2000, precision: 0.01 },
-      createdAt: { type: "pastDate" },
-    },
-  },
-]);
-```
-
-### Blog com Relacionamentos
-
-```typescript
-// 1. Criar usuários
-await seeder.seed({
-  model: "user",
-  count: 20,
-  fields: {
-    email: { type: "email", unique: true },
-    username: { type: "string", unique: true },
+    email: { type: "email" },
     name: { type: "fullName" },
-    bio: { type: "paragraph", optional: true },
-    avatar: { type: "avatar" },
   },
 });
 
-// 2. Buscar IDs dos usuários
-const users = await prisma.user.findMany({ select: { id: true } });
-const userIds = users.map((u) => u.id);
-
-// 3. Criar posts
-await seeder.seed({
-  model: "post",
-  count: 100,
-  fields: {
-    title: { type: "sentence" },
-    slug: { type: "slug", unique: true },
-    content: { type: "paragraph" },
-    excerpt: { type: "sentence" },
-    coverImage: { type: "image" },
-    published: { type: "boolean" },
-    views: { type: "int", min: 0, max: 10000 },
-    authorId: {
-      type: "custom",
-      customFn: () => faker.helpers.arrayElement(userIds),
-    },
-  },
-});
-
-// 4. Buscar IDs dos posts
-const posts = await prisma.post.findMany({ select: { id: true } });
-const postIds = posts.map((p) => p.id);
-
-// 5. Criar comentários
-await seeder.seed({
-  model: "comment",
-  count: 500,
-  fields: {
-    content: { type: "paragraph" },
-    postId: {
-      type: "custom",
-      customFn: () => faker.helpers.arrayElement(postIds),
-    },
-    authorId: {
-      type: "custom",
-      customFn: () => faker.helpers.arrayElement(userIds),
-    },
-  },
-});
-```
-
-### Sistema de Eventos
-
-```typescript
-await seeder.seed({
-  model: "event",
-  count: 50,
-  fields: {
-    title: { type: "sentence" },
-    description: { type: "paragraph" },
-    location: { type: "address" },
-    city: { type: "city" },
-    country: { type: "country" },
-    startDate: { type: "futureDate" },
-    endDate: { type: "futureDate" },
-    capacity: { type: "int", min: 10, max: 1000 },
-    price: { type: "float", min: 0, max: 500, precision: 0.01 },
-    category: {
-      type: "enum",
-      enumValues: ["TECH", "MUSIC", "SPORTS", "EDUCATION", "BUSINESS"],
-    },
-    isOnline: { type: "boolean" },
-    meetingUrl: {
-      type: "url",
-      optional: true,
-    },
-  },
-  beforeCreate: (data) => {
-    // Se for online, sempre tem URL
-    if (data.isOnline) {
-      data.meetingUrl = faker.internet.url();
-    }
-    // EndDate deve ser depois de startDate
-    data.endDate = new Date(data.startDate.getTime() + 86400000); // +1 dia
-    return data;
-  },
-});
+await mongoose.disconnect();
 ```
 
 ## 📖 API Reference
 
-### SeedGenerator
+### SeedGenerator Class
 
 #### Constructor
 
@@ -589,21 +841,53 @@ new SeedGenerator(options: SeedGeneratorOptions)
 
 **Parâmetros:**
 
-- `orm`: Tipo do ORM (`'prisma'` | `'typeorm'` | `'sequelize'` | `'mongoose'`)
-- `client`: Cliente/Repository do ORM
-- `verbose?`: Exibir logs (padrão: `true`)
+| Parâmetro | Tipo                                                 | Obrigatório | Descrição                                     |
+| --------- | ---------------------------------------------------- | ----------- | --------------------------------------------- |
+| `orm`     | `'prisma' \| 'typeorm' \| 'sequelize' \| 'mongoose'` | Sim         | Tipo do ORM utilizado                         |
+| `client`  | `any`                                                | Sim         | Instância do cliente/repository do ORM        |
+| `verbose` | `boolean`                                            | Não         | Exibir logs durante execução (padrão: `true`) |
 
-#### Métodos
+**Exemplo:**
 
-##### seed()
+```typescript
+const seeder = new SeedGenerator({
+  orm: "prisma",
+  client: prisma,
+  verbose: true,
+});
+```
+
+#### seed()
 
 ```typescript
 async seed(configs: SeedConfig | SeedConfig[]): Promise<void>
 ```
 
-Executa a geração e inserção de dados.
+Executa a geração e inserção de dados fake.
 
-### SeedConfig
+**Parâmetros:**
+
+- `configs`: Configuração única ou array de configurações
+
+**Retorno:** Promise<void>
+
+**Exemplo:**
+
+```typescript
+// Single config
+await seeder.seed({
+  model: "user",
+  count: 50,
+  fields: {
+    /* ... */
+  },
+});
+
+// Multiple configs
+await seeder.seed([{ model: "user" /* ... */ }, { model: "post" /* ... */ }]);
+```
+
+### SeedConfig Interface
 
 ```typescript
 interface SeedConfig {
@@ -616,7 +900,18 @@ interface SeedConfig {
 }
 ```
 
-### FieldConfig
+**Propriedades:**
+
+| Propriedade    | Tipo                          | Obrigatório | Descrição                           |
+| -------------- | ----------------------------- | ----------- | ----------------------------------- |
+| `model`        | `string`                      | Sim         | Nome do model/tabela                |
+| `count`        | `number`                      | Sim         | Quantidade de registros             |
+| `fields`       | `Record<string, FieldConfig>` | Sim         | Configuração dos campos             |
+| `staticData`   | `Record<string, any>`         | Não         | Dados fixos para todos os registros |
+| `beforeCreate` | `Function`                    | Não         | Hook antes de inserir               |
+| `afterCreate`  | `Function`                    | Não         | Hook após inserir                   |
+
+### FieldConfig Interface
 
 ```typescript
 interface FieldConfig {
@@ -632,58 +927,125 @@ interface FieldConfig {
 }
 ```
 
-## 🎯 Boas Práticas
+**Propriedades:**
 
-### 1. Sempre use em desenvolvimento
+| Propriedade       | Tipo             | Descrição                | Padrão  |
+| ----------------- | ---------------- | ------------------------ | ------- |
+| `type`            | `FieldType`      | Tipo do campo            | -       |
+| `enumValues`      | `any[]`          | Valores para tipo enum   | -       |
+| `customFn`        | `(index) => any` | Função custom            | -       |
+| `unique`          | `boolean`        | Garante valores únicos   | `false` |
+| `optional`        | `boolean`        | Permite null             | `false` |
+| `nullProbability` | `number`         | Chance de ser null (0-1) | `0.1`   |
+| `min`             | `number`         | Valor mínimo (números)   | -       |
+| `max`             | `number`         | Valor máximo (números)   | -       |
+| `precision`       | `number`         | Precisão decimal         | `0.01`  |
+
+### FieldType
 
 ```typescript
-if (process.env.NODE_ENV !== "development") {
-  console.log("⚠️ Seeds só em desenvolvimento!");
-  return;
-}
+type FieldType =
+  | "uuid"
+  | "string"
+  | "email"
+  | "password"
+  | "firstName"
+  | "lastName"
+  | "fullName"
+  | "phone"
+  | "url"
+  | "number"
+  | "int"
+  | "float"
+  | "boolean"
+  | "date"
+  | "datetime"
+  | "pastDate"
+  | "futureDate"
+  | "text"
+  | "paragraph"
+  | "sentence"
+  | "address"
+  | "city"
+  | "country"
+  | "zipCode"
+  | "company"
+  | "jobTitle"
+  | "avatar"
+  | "image"
+  | "slug"
+  | "json"
+  | "enum"
+  | "custom";
 ```
 
-### 2. Limpe o banco antes
+## 🎯 Boas Práticas
+
+### 1. Sempre Proteja o Ambiente
 
 ```typescript
-// Prisma
-await prisma.user.deleteMany();
-await prisma.post.deleteMany();
+// ✅ BOM - Verifica ambiente
+if (process.env.NODE_ENV !== "development") {
+  console.log("⚠️ Seeds só em desenvolvimento!");
+  process.exit(1);
+}
 
-// Em seguida execute o seed
+// ❌ RUIM - Sem proteção
 await seeder.seed(/* ... */);
 ```
 
-### 3. Ordem de criação
-
-Crie registros pai antes dos filhos:
+### 2. Limpe Dados Antes de Criar
 
 ```typescript
-// ✅ Correto
+// ✅ BOM - Ordem correta (filho → pai)
+await prisma.comment.deleteMany();
+await prisma.post.deleteMany();
+await prisma.user.deleteMany();
+
 await seeder.seed([
-  { model: "user" /* ... */ }, // Pai
-  { model: "post" /* ... */ }, // Filho (tem userId)
+  /* ... */
 ]);
 
-// ❌ Errado
+// ❌ RUIM - Pode dar erro de constraint
+await prisma.user.deleteMany(); // Erro se tem posts relacionados
+```
+
+### 3. Ordem de Criação é Importante
+
+```typescript
+// ✅ BOM - Pai primeiro, filho depois
 await seeder.seed([
-  { model: "post" /* ... */ }, // Filho
-  { model: "user" /* ... */ }, // Pai
+  { model: "user" /* ... */ }, // 1. Cria usuários
+  { model: "post" /* ... */ }, // 2. Cria posts (precisa de userId)
+]);
+
+// ❌ RUIM - Vai dar erro de FK
+await seeder.seed([
+  { model: "post" /* ... */ }, // Erro: userId não existe ainda
+  { model: "user" /* ... */ },
 ]);
 ```
 
-### 4. Use valores únicos quando necessário
+### 4. Use Valores Únicos Quando Necessário
 
 ```typescript
+// ✅ BOM - Campos que devem ser únicos
 {
   email: { type: 'email', unique: true },
-  username: { type: 'string', unique: true }
+  username: { type: 'string', unique: true },
+  slug: { type: 'slug', unique: true }
+}
+
+// ⚠️ ATENÇÃO - Sem unique pode gerar duplicados
+{
+  email: { type: 'email' } // Pode gerar emails iguais!
 }
 ```
 
-### 5. Hash de senhas
+### 5. Hash de Senhas
 
 ```typescript
+// ✅ BOM - Hash antes de salvar
 {
   model: 'user',
   fields: {
@@ -694,151 +1056,380 @@ await seeder.seed([
     return data;
   }
 }
+
+// ❌ RUIM - Senha em texto puro
+{
+  model: 'user',
+  fields: {
+    password: { type: 'password' }
+  }
+}
 ```
 
-### 6. Quantidade realista
+### 6. Quantidade Realista
 
 ```typescript
-// ✅ Bom para desenvolvimento
+// ✅ BOM - Quantidade para desenvolvimento
 { model: 'user', count: 50 }
 { model: 'post', count: 200 }
+{ model: 'comment', count: 1000 }
 
-// ❌ Pode deixar o banco lento
-{ model: 'user', count: 100000 }
+// ❌ RUIM - Muito pesado
+{ model: 'user', count: 100000 } // Vai deixar o banco lento!
 ```
 
-### 7. Organize em arquivos separados
+### 7. Organize em Arquivos Separados
 
 ```
-prisma/
-├── seed.ts              # Arquivo principal
-├── seeds/
-│   ├── user.seed.ts     # Seeds de usuários
-│   ├── post.seed.ts     # Seeds de posts
-│   └── product.seed.ts  # Seeds de produtos
+src/database/seeds/
+├── index.ts           # Orquestra tudo
+├── config/
+│   └── seeder.ts      # Instância do seeder
+├── users.seed.ts      # Seeds de usuários
+├── posts.seed.ts      # Seeds de posts
+└── products.seed.ts   # Seeds de produtos
+```
+
+### 8. Use TypeScript para Type Safety
+
+```typescript
+import type { SeedConfig } from "seed-data-generator";
+
+// ✅ BOM - Com tipos
+export const userSeeds: SeedConfig = {
+  model: "user",
+  count: 50,
+  fields: {
+    email: { type: "email", unique: true },
+  },
+};
+
+// ⚠️ FUNCIONA mas sem autocomplete
+export const userSeeds = {
+  model: "user",
+  count: 50,
+  fields: {
+    email: { type: "emial" }, // Typo não detectado
+  },
+};
+```
+
+### 9. Logs Úteis
+
+```typescript
+{
+  model: 'user',
+  count: 100,
+  fields: { /* ... */ },
+  beforeCreate: (data, index) => {
+    if ((index + 1) % 20 === 0) {
+      console.log(`✓ ${index + 1}/100 usuários criados`);
+    }
+    return data;
+  },
+  afterCreate: async (data, index) => {
+    // Última operação
+    if (index === 99) {
+      console.log('🎉 Todos os usuários foram criados!');
+    }
+  }
+}
+```
+
+### 10. Tratamento de Erros
+
+```typescript
+async function main() {
+  try {
+    await seeder.seed([
+      /* configs */
+    ]);
+    console.log("✅ Seeds executados com sucesso!");
+  } catch (error) {
+    console.error("❌ Erro ao executar seeds:");
+
+    if (error.code === "P2002") {
+      console.error("→ Violação de constraint unique");
+    } else if (error.code === "P2003") {
+      console.error("→ Violação de foreign key");
+    } else {
+      console.error(error);
+    }
+
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 ```
 
 ## 🐛 Troubleshooting
 
 ### Erro: "customFn é obrigatório para tipo 'custom'"
 
-**Solução:** Forneça a função customFn:
+**Problema:** Usou type `'custom'` sem fornecer função.
 
 ```typescript
-{
-  field: {
-    type: 'custom',
-    customFn: (index) => `valor-${index}`
-  }
-}
+// ❌ ERRO
+{ field: { type: 'custom' } }
+
+// ✅ SOLUÇÃO
+{ field: { type: 'custom', customFn: (i) => `value-${i}` } }
 ```
 
 ### Erro: "enumValues é obrigatório para tipo 'enum'"
 
-**Solução:** Forneça os valores do enum:
+**Problema:** Usou type `'enum'` sem fornecer valores.
 
 ```typescript
-{
-  status: {
-    type: 'enum',
-    enumValues: ['ACTIVE', 'INACTIVE']
-  }
-}
+// ❌ ERRO
+{ status: { type: 'enum' } }
+
+// ✅ SOLUÇÃO
+{ status: { type: 'enum', enumValues: ['ACTIVE', 'INACTIVE'] } }
 ```
 
-### Erro: "Não foi possível gerar valor único"
+### Erro: "Não foi possível gerar valor único após 1000 tentativas"
 
-**Problema:** Muitos registros com campo único limitado.
-
-**Solução:** Aumente a variedade ou reduza a quantidade:
+**Problema:** Campo `unique: true` mas poucos valores possíveis.
 
 ```typescript
-// ❌ Problema
+// ❌ PROBLEMA - Apenas ~100 firstNames disponíveis
 {
   count: 1000,
   fields: {
-    name: { type: 'firstName', unique: true } // Poucos nomes disponíveis
+    name: { type: 'firstName', unique: true }
   }
 }
 
-// ✅ Solução
+// ✅ SOLUÇÃO 1 - Use campo com mais variações
 {
   count: 1000,
   fields: {
     email: { type: 'email', unique: true } // Infinitas combinações
   }
 }
+
+// ✅ SOLUÇÃO 2 - Reduza a quantidade
+{
+  count: 50,
+  fields: {
+    name: { type: 'firstName', unique: true }
+  }
+}
+
+// ✅ SOLUÇÃO 3 - Use custom com index
+{
+  count: 1000,
+  fields: {
+    username: {
+      type: 'custom',
+      customFn: (i) => `user_${i}`,
+      unique: true
+    }
+  }
+}
 ```
 
 ### Erro: "Cliente Prisma não fornecido"
 
-**Solução:** Passe o cliente corretamente:
+**Problema:** Esqueceu de passar o client.
 
 ```typescript
-const prisma = new PrismaClient();
-
+// ❌ ERRO
 const seeder = new SeedGenerator({
   orm: "prisma",
-  client: prisma, // ← Não esqueça!
+  verbose: true,
+});
+
+// ✅ SOLUÇÃO
+const prisma = new PrismaClient();
+const seeder = new SeedGenerator({
+  orm: "prisma",
+  client: prisma, // ← Adicione isto!
   verbose: true,
 });
 ```
 
-### Seeds não aparecem no banco
+### Erro: Foreign Key Constraint
 
-**Verificar:**
-
-1. Conexão com banco está correta?
-2. Modelo/tabela existe?
-3. Permissões de escrita?
-4. Verificar logs com `verbose: true`
+**Problema:** Tentou criar filho antes do pai.
 
 ```typescript
+// ❌ PROBLEMA
+await seeder.seed([
+  { model: "post" /* precisa de userId */ },
+  { model: "user" /* ... */ },
+]);
+
+// ✅ SOLUÇÃO - Crie na ordem correta
+await seeder.seed([{ model: "user" /* ... */ }, { model: "post" /* ... */ }]);
+```
+
+### Erro: Unique Constraint Violation
+
+**Problema:** Tentou inserir valor duplicado em campo único.
+
+```typescript
+// ❌ PROBLEMA
+{
+  email: { type: 'email' } // Sem unique: true
+}
+// Pode gerar emails iguais!
+
+// ✅ SOLUÇÃO
+{
+  email: { type: 'email', unique: true }
+}
+```
+
+### Seeds não aparecem no banco
+
+**Checklist:**
+
+1. ✅ Conexão com banco está correta?
+2. ✅ Modelo/tabela existe no schema?
+3. ✅ Permissões de escrita no banco?
+4. ✅ Verificar logs com `verbose: true`
+5. ✅ Verificar se está no ambiente correto
+
+```typescript
+// Debug
 const seeder = new SeedGenerator({
   orm: "prisma",
   client: prisma,
   verbose: true, // ← Ative os logs
 });
+
+// Teste conexão
+console.log("🔍 Testando conexão...");
+await prisma.$connect();
+console.log("✅ Conectado ao banco!");
+
+// Conta registros antes
+const beforeCount = await prisma.user.count();
+console.log(`📊 Usuários antes: ${beforeCount}`);
+
+await seeder.seed(/* ... */);
+
+// Conta registros depois
+const afterCount = await prisma.user.count();
+console.log(`📊 Usuários depois: ${afterCount}`);
 ```
 
-### Performance lenta
+### Performance Lenta
 
-**Soluções:**
-
-1. Reduza a quantidade de registros
-2. Desative hooks se não necessários
-3. Use transações (se o ORM suportar)
-4. Crie índices apropriados
+**Problema:** Muitos registros ou hooks pesados.
 
 ```typescript
-// Criar em lotes menores
+// ❌ LENTO - 10.000 registros de uma vez
+{
+  model: 'user',
+  count: 10000,
+  fields: { /* ... */ },
+  beforeCreate: async (data) => {
+    await someSlowOperation(); // Operação lenta
+    return data;
+  }
+}
+
+// ✅ RÁPIDO - Em lotes menores
 for (let i = 0; i < 10; i++) {
   await seeder.seed({
-    model: "user",
-    count: 100, // 100 por vez
-    fields: {
-      /* ... */
-    },
+    model: 'user',
+    count: 1000, // 1000 por vez
+    fields: { /* ... */ }
   });
+  console.log(`✓ Lote ${i + 1}/10 completo`);
+}
+
+// ✅ RÁPIDO - Sem hooks pesados
+{
+  model: 'user',
+  count: 10000,
+  fields: { /* ... */ }
+  // Sem beforeCreate pesado
 }
 ```
 
-## 📄 Licença
+### Erro: Cannot find module 'seed-data-generator'
 
-MIT
+**Problema:** Biblioteca não instalada.
+
+```bash
+# ✅ SOLUÇÃO
+npm install seed-data-generator @faker-js/faker
+
+# Ou
+yarn add seed-data-generator @faker-js/faker
+
+# Ou
+pnpm add seed-data-generator @faker-js/faker
+```
+
+### TypeScript: Type Errors
+
+**Problema:** Tipos não reconhecidos.
+
+```typescript
+// ❌ ERRO - Tipo não reconhecido
+import { SeedGenerator } from 'seed-data-generator';
+
+// ✅ SOLUÇÃO - Instale types se necessário
+npm install -D @types/node typescript
+
+// ✅ Use tipos exportados
+import type { SeedConfig, FieldConfig, FieldType } from 'seed-data-generator';
+```
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
+Contribuições são muito bem-vindas! Veja como você pode ajudar:
+
+### Reportar Bugs
+
+1. Abra uma issue no GitHub
+2. Descreva o problema detalhadamente
+3. Inclua versão do Node, ORM e biblioteca
+4. Adicione código para reproduzir
+
+### Sugerir Recursos
+
+1. Verifique se já não foi sugerido
+2. Abra uma issue com tag `enhancement`
+3. Descreva o caso de uso
+4. Explique o benefício
+
+### Enviar Pull Request
+
+1. Fork o repositório
+2. Crie uma branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit: `git commit -m 'feat: adiciona nova funcionalidade'`
+4. Push: `git push origin feature/nova-funcionalidade`
+5. Abra um Pull Request
 
 ## 📞 Suporte
 
-Se encontrar problemas ou tiver dúvidas:
+Precisa de ajuda?
 
-1. Verifique a seção [Troubleshooting](#-troubleshooting)
-2. Consulte os [Exemplos Práticos](#-exemplos-práticos)
-3. Abra uma issue no GitHub
+1. 📖 Consulte esta documentação
+2. 🐛 Veja [Troubleshooting](#-troubleshooting)
+3. 💬 Abra uma issue no [GitHub](https://github.com/seu-usuario/seed-data-generator/issues)
+4. 📧 Entre em contato: edilasio@live.com
+
+## ⭐ Mostre seu Suporte
+
+Se este projeto te ajudou, considere:
+
+- ⭐ Dar uma estrela no GitHub
+- 🐦 Compartilhar no Twitter
+- 📝 Escrever um artigo sobre
+- 💬 Recomendar para amigos
 
 ---
 
-Feito com ❤️ para facilitar o desenvolvimento
+<div align="center">
+
+[⬆ Voltar ao topo](#-seed-data-generator)
+
+</div>
