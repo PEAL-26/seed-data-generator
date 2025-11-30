@@ -3,7 +3,7 @@ import "dotenv/config";
 import { PrismaClient } from './generated/prisma/client';
 import { faker } from '@faker-js/faker';
 
-import { SeedGenerator } from '../src/seed-generator'
+import { SeedGenerator } from 'seed-data-generator'
 
 /**
  * Exemplo de uso com Prisma
