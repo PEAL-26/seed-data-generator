@@ -8,7 +8,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
-Uma biblioteca TypeScript poderosa e flexível para gerar dados fake e popular sua base de dados em ambiente de desenvolvimento.
+Uma biblioteca flexível para gerar dados fake e popular sua base de dados em ambiente de desenvolvimento.
 
 [Documentação](#-documentação) • [Instalação](#-instalação-rápida) • [Guia Rápido](#-guia-rápido) • [Exemplos](#-exemplos-práticos) • [API](#-api-reference)
 

@@ -1,7 +1,7 @@
 {
   "name": "seed-data-generator",
   "version": "1.0.3",
-  "description": "",
+  "description": "Uma biblioteca flexível para gerar dados fake e popular sua base de dados em ambiente de desenvolvimento.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
