@@ -27,7 +27,6 @@
     "orm",
     "database"
   ],
-  "type": "module",
   "devDependencies": {
     "@types/node": "^24.10.1",
     "ts-node": "^10.9.2",
